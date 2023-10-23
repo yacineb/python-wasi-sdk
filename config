@@ -1,0 +1,97 @@
+#!/bin/bash
+export LC_ALL=C
+export ROOT=${ROOT:-$(pwd)}
+export SDKROOT=${SDKROOT:-$ROOT}
+
+export PYTHONDONTWRITEBYTECODE=1
+export REBUILD=${REBUILD:-false}
+export CI=${CI:-false}
+
+export PYBUILD=${PYBUILD:-3.12}
+export PYMAJOR=$(echo -n $PYBUILD|cut -d. -f1)
+export PYMINOR=$(echo -n $PYBUILD|cut -d. -f2)
+
+export HOST_PREFIX=${HOST_PREFIX:-${SDKROOT}/devices/$(arch)/usr}
+export PREFIX=${PREFIX:-${SDKROOT}/devices/emsdk/usr}
+
+mkdir -p ${SDKROOT}/build/pycache
+export PYTHONPYCACHEPREFIX=${PYTHONPYCACHEPREFIX:-$(realpath ${SDKROOT}/build/pycache)}
+
+export HOME=${SDKROOT}
+
+export HPY=${HOST_PREFIX}/bin/python${PYBUILD}
+export HPIP="${HPY} -mpip"
+
+# cpython build opts
+export CPOPTS="-Os -g0 -fPIC"
+
+
+if [ -f ${ROOT}/dev ]
+then
+    export COPTS="-O1 -g3 -fPIC"
+    export QUIET=""
+else
+    export COPTS="-Os -g0 -fPIC"
+    if ${VERBOSE:-false}
+    then
+        export QUIET=""
+    else
+        export QUIET="2>&1 > $PYTHONPYCACHEPREFIX/.log"
+    fi
+fi
+
+
+#stable
+# embind broke after 3.1.34
+# export EMFLAVOUR=3.1.34
+# export EMFLAVOUR=${EMFLAVOUR:latest}
+
+
+EMFLAVOUR=${EMFLAVOUR:-tot}
+
+
+# base wasm features pure is "mvp" , "bi" is bigint
+
+if [ -f /mvp ]
+then
+    export WASM_FLAVOUR=mvp
+    export WASM_EXTRA="-sMIN_SAFARI_VERSION=120000"
+    export WASM_PURE=true
+else
+    export WASM_FLAVOUR=bi
+
+    # extra features. Safari 14 is expected to have BIGINT, ignore the emsdk warnings.
+    export WASM_EXTRA="-sWASM_BIGINT -sMIN_SAFARI_VERSION=140100"
+
+    # tell to not normalize modules.
+    export WASM_PURE=false
+fi
+
+#temp fix for oom on CI (Error: Process completed with exit code 143.)
+export EMSDK_NUM_CORES=1
+
+export PYDK_PYTHON_HOST_PLATFORM=wasm32-${WASM_FLAVOUR}-emscripten
+
+if echo $LD_LIBRARY_PATH |grep -q ${HOST_PREFIX}/lib
+then
+    # config already set
+    echo -n
+else
+    OLDPATH=${PATH}
+    PATH=/usr/local/bin:/usr/bin:/opt/bin:/bin
+    # this is python used for emsdk : ${SYS_PYTHON} -> ${EMSDK_PYTHON}
+    for py in 10 9 8 7
+    do
+        if command -v python${PYMAJOR}.${py} >/dev/null
+        then
+            export SYS_PYTHON=$(command -v python${PYMAJOR}.${py})
+            break
+        else
+            # sane default
+            export SYS_PYTHON=$(command -v python${PYMAJOR})
+        fi
+    done
+
+    export LD_LIBRARY_PATH="${HOST_PREFIX}/lib:$LD_LIBRARY_PATH"
+    export PATH="${HOST_PREFIX}/bin:$OLDPATH"
+fi
