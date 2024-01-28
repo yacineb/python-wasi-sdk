@@ -45,39 +45,18 @@ fi
 
 if echo $PYBUILD |grep -q 12$
 then
-#    if [ -d cpython${PYBUILD} ]
-#    then
-#        pushd cpython${PYBUILD} 2>&1 >/dev/null
-#        # put the tree back to original state so we can pull
-#        # Programs/python.c Modules/readline.c
-#        git restore .
-
-#        if git pull|grep -q 'Already up to date'
-#        then
-#            export REBUILD=${REBUILD:-false}
-#        else
-#            export REBUILD=true
-#        fi
-#        #not here or pip won't install properly anymore its wheels
-#        #cat $ROOT/support/compilenone.py > ./Lib/compileall.py
-#        popd
-#    else
-#        git clone --no-tags --depth 1 --single-branch --branch 3.12 https://github.com/python/cpython.git cpython${PYBUILD}
-#        export REBUILD=true
-#    fi
-
-    wget -q -c https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tar.xz
-    tar xf Python-3.12.0.tar.xz
-    ln -s Python-3.12.0 cpython${PYBUILD}
+    wget -q -c https://www.python.org/ftp/python/3.12.1/Python-3.12.1.tar.xz
+    tar xf Python-3.12.1.tar.xz
+    ln -s Python-3.12.1 cpython${PYBUILD}
     export REBUILD=true
 fi
 
 
 if echo $PYBUILD | grep -q 11$
 then
-    wget -q -c https://www.python.org/ftp/python/3.11.6/Python-3.11.6.tar.xz
-    tar xf Python-3.11.6.tar.xz
-    ln -s Python-3.11.6 cpython${PYBUILD}
+    wget -q -c https://www.python.org/ftp/python/3.11.7/Python-3.11.7.tar.xz
+    tar xf Python-3.11.7.tar.xz
+    ln -s Python-3.11.7 cpython${PYBUILD}
     export REBUILD=true
 fi
 
