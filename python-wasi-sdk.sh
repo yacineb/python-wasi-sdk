@@ -8,8 +8,9 @@ reset
 . /etc/lsb-release
 DISTRIB="${DISTRIB_ID}-${DISTRIB_RELEASE}"
 
-export SDKROOT=/opt/python-wasm-sdk
+SDKROOT=${SDKROOT:-/opt/python-wasm-sdk}
 
+export SDKROOT
 export CIVER=${CIVER:-$DISTRIB}
 export CI=true
 
@@ -19,14 +20,21 @@ then
     emsdk=true
 else
     emsdk=false
+    BUILDS=3.12
 fi
 
 echo " * adding wasi-sdk to wasm-sdk"
 wasisdk=true
 
+if [ -d ${SDKROOT} ]
+then
+    echo "assming destination $SDKROOT is ready"
+else
+    sudo mkdir -p ${SDKROOT}
+    sudo chmod 777 ${SDKROOT}
+fi
 
-sudo mkdir -p ${SDKROOT}
-sudo chmod 777 ${SDKROOT}
+chmod +x ${SDKROOT}/scripts/*
 
 ORIGIN=$(pwd)
 
@@ -76,6 +84,8 @@ do
             . scripts/cpython-fetch.sh
 
             cd ${SDKROOT}
+
+            # generic wasm patchwork
             . support/__EMSCRIPTEN__.sh
 
             . scripts/cpython-build-host.sh 2>&1 >/dev/null
@@ -83,7 +93,6 @@ do
             . scripts/cpython-build-host-deps.sh >/dev/null
 
         fi
-
 
 
         if $emsdk
@@ -154,17 +163,13 @@ do
 
             cat >> $ROOT/wasm32-wasi-shell.sh <<END
 #!/bin/bash
-pushd ${SDKROOT}
-. scripts/wasisdk-fetch.sh
-popd
+. ${SDKROOT}/wasisdk/wasisdk_env.sh
 
 export PS1="[PyDK:wasisdk] \w $ "
 
 END
 
             chmod +x ${SDKROOT}/python3-wasi ${SDKROOT}/wasm32-wasi-shell.sh
-
-
 
         fi
 
