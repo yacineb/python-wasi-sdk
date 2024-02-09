@@ -18,13 +18,16 @@ if echo $0|grep -q python-wasm-sdk
 then
     echo " * adding emsdk to wasm-sdk"
     emsdk=true
+    wasisdk=false
+    nimsdk=false
 else
     emsdk=false
     BUILDS=3.12
+    echo " * adding wasi-sdk to wasm-sdk"
+    wasisdk=true
+    nimsdk=true
 fi
 
-echo " * adding wasi-sdk to wasm-sdk"
-wasisdk=true
 
 if [ -d ${SDKROOT} ]
 then
@@ -40,18 +43,18 @@ ORIGIN=$(pwd)
 
 # 3.12 3.11 3.10
 
-BUILDS=${BUILDS:-3.11 3.12 3.13}
+BUILDS=${BUILDS:-3.11 3.13 3.12}
 
 for PYBUILD in $BUILDS
 do
     cd "$ORIGIN"
 
-    if echo $PYBUILD|grep -q 12$
-    then
-        wasisdk=true
-    else
-        wasisdk=false
-    fi
+#    if echo $PYBUILD|grep -q 12$
+#    then
+#        wasisdk=true
+#    else
+#        wasisdk=false
+#    fi
 
     if [ -f ${SDKROOT}/dev ]
     then
@@ -93,6 +96,19 @@ do
             . scripts/cpython-build-host-deps.sh >/dev/null
 
         fi
+
+        cat > /opt/python-wasm-sdk/devices/$(arch)/usr/bin/py <<END
+#!/bin/bash
+export XDG_SESSION_TYPE=x11
+export SDKROOT=${SDKROOT}
+export PYTHONPATH=/data/git/pygbag/src:/data/git/platform_wasm:${PYTHONPATH}
+export PYTHONPYCACHEPREFIX=$PYTHONPYCACHEPREFIX
+export HOME=${SDKROOT}
+export PATH=${SDKROOT}/devices/$(arch)/usr/bin:\$PATH
+export LD_LIBRARY_PATH=${SDKROOT}/devices/$(arch)/usr/lib:${SDKROOT}/devices/$(arch)/usr/lib64:$LD_LIBRARY_PATH
+${SDKROOT}/devices/$(arch)/usr/bin/python\${PYBUILD:-$PYBUILD} $@
+END
+        chmod + /opt/python-wasm-sdk/devices/$(arch)/usr/bin/py
 
 
         if $emsdk
@@ -171,6 +187,11 @@ END
 
             chmod +x ${SDKROOT}/python3-wasi ${SDKROOT}/wasm32-wasi-shell.sh
 
+        fi
+
+        if $nimsdk
+        then
+            ${SDKROOT}/python-nim-sdk.sh
         fi
 
         . ${SDKROOT}/scripts/pack-sdk.sh

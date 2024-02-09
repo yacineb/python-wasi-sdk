@@ -2,17 +2,19 @@
 
 SDKROOT=${SDKROOT:-/opt/python-wasm-sdk}
 
-if [[ -z ${WASISDK+z} ]]
+if [[ -z ${WASISDK_ENV+z} ]]
 then
-
+    export WASISDK_ENV=true
     . ${CONFIG:-${SDKROOT}/config}
 
-    export WASISDK="${SDKROOT}/wasisdk"
+    export ARCH=wasisdk
+    export WASISDK=${WASISDK:-"${SDKROOT}/${ARCH}"}
     export WASI_SDK_PREFIX="${WASISDK}/upstream"
     export WASI_SYSROOT="${WASI_SDK_PREFIX}/share/wasi-sysroot"
 
-    export CMAKE_TOOLCHAIN_FILE=${SDKROOT}/wasisdk/share/cmake/Modules/Platform/WASI.cmake
-    export CMAKE_INSTALL_PREFIX="${SDKROOT}/devices/wasisdk/usr"
+    export CMAKE_TOOLCHAIN_FILE=${WASISDK}/share/cmake/Modules/Platform/WASI.cmake
+    export CMAKE_INSTALL_PREFIX="${SDKROOT}/devices/${ARCH}/usr"
+    export PREFIX=$CMAKE_INSTALL_PREFIX
 
     if [ -d ${WASI_SDK_PREFIX}/bin ]
     then
@@ -28,8 +30,6 @@ then
     fi
 
     export PATH="${WASISDK}/bin:${WASI_SDK_PREFIX}/bin:$PATH"
-
-    export PREFIX=$CMAKE_INSTALL_PREFIX
 
     # instruct pkg-config to use wasi target root
     export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${WASI_SYSROOT}/lib/wasm32-wasi/pkgconfig"

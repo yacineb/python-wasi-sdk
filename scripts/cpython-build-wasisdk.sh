@@ -8,17 +8,8 @@ pushd ${SDKROOT}
 . ${CONFIG:-config}
 
 
-export PREFIX=${PREFIX:-${SDKROOT}/devices/wasisdk/usr}
+#export PREFIX=${PREFIX:-${SDKROOT}/devices/wasisdk/usr}
 export PYTHON_FOR_BUILD=${PYTHON_FOR_BUILD:-${HPY}}
-
-
-echo "
-
-    * building cpython-wasi ${PREFIX}/bin/python${PYBUILD}.wasm
-        with PYTHON_FOR_BUILD=$PYTHON_FOR_BUILD
-
-" 1>&2
-
 
 
 if [ -f ${PYTHON_FOR_BUILD} ]
@@ -32,8 +23,6 @@ else
     popd
 fi
 
-. ${SDKROOT}/wasisdk/wasisdk_env.sh
-
 
 export LD_LIBRARY_PATH=${SDKROOT}/devices/x86_64/usr/lib:$LD_LIBRARY_PATH
 
@@ -42,9 +31,20 @@ then
 
     PYSRC=${SDKROOT}/src/cpython${PYBUILD}
 
+    . ${SDKROOT}/wasisdk/wasisdk_env.sh
+
+
     echo "
-    * building python wasi from ${PYSRC}
-"
+
+    * building cpython-wasi ${PREFIX}/bin/python${PYBUILD}.wasm
+        from ${PYSRC}
+        with PYTHON_FOR_BUILD=$PYTHON_FOR_BUILD
+        CC=$CC
+        CXX=$CXX
+        CPP=$CPP
+
+" 1>&2
+
 
     mkdir -p ${SDKROOT}/build/cpython-wasi
 
@@ -62,7 +62,7 @@ END
         sed -i 's| -Wl,--stack-first -Wl,--initial-memory=10485760||g' $PYSRC/configure.ac
         sed -i 's| -Wl,--stack-first -Wl,--initial-memory=10485760||g' $PYSRC/configure
 
-        CC=clang CXX=clang++ LDSHARED="${SDKROOT}/wasisdk/upstream/bin/wasm-ld --no-entry" CONFIG_SITE=$PYSRC/Tools/wasm/config.site-wasm32-wasisdk \
+        LDSHARED="${SDKROOT}/wasisdk/upstream/bin/wasm-ld --no-entry" CONFIG_SITE=$PYSRC/Tools/wasm/config.site-wasm32-wasisdk \
         $PYSRC/configure -C \
         --with-c-locale-coercion --without-pymalloc --disable-ipv6  --with-ensurepip=no \
         --prefix=${PREFIX} \

@@ -42,6 +42,7 @@ else
     fi
 fi
 
+# ============ emscripten ==============
 
 # stable
 # export EMFLAVOUR=3.1.34
@@ -53,8 +54,26 @@ fi
 #export EMFLAVOUR=${EMFLAVOUR:latest}
 export EMFLAVOUR=${EMFLAVOUR:-tot}
 
+# ============== wasi sdk ===============
+
 # stable
 WASI_SDK=${WASI_SDK:-20}
+WASI_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK}/wasi-sdk-${WASI_SDK}.0-linux.tar.gz
+
+WASISDK="${SDKROOT}/wasisdk"
+
+
+# =============== Nimrod ====================
+
+# stable
+NIM_VERSION=nim-2.0.2
+NIM_URL=https://nim-lang.org/download/${NIM_VERSION}-linux_x64.tar.xz
+
+
+NIM_VERSION=nim-git
+NIM_URL=https://github.com/nim-lang/Nim
+
+NIMSDK=${NIMSDK:-"${SDKROOT}/nimsdk"}
 
 
 # base wasm features pure is "mvp" , "bi" is bigint
@@ -85,7 +104,22 @@ then
     echo -n
 else
     OLDPATH=${PATH}
-    PATH=/usr/local/bin:/usr/bin:/opt/bin:/bin
+
+    PATH=/usr/bin:/bin
+    for extrabin in /usr/local/bin /opt/bin
+    do
+        if echo $PATH|grep -q ":$extrabin"
+        then
+            continue
+        fi
+
+        if [ -d $extrabin ]
+        then
+            PATH=$extrabin:$PATH
+        fi
+    done
+
+
     # this is python used for emsdk : ${SYS_PYTHON} -> ${EMSDK_PYTHON}
     for py in 10 9 8 7
     do
@@ -99,6 +133,7 @@ else
         fi
     done
 
+    export GITGET="git clone --recursive --no-tags --depth 1 --single-branch --branch"
     export LD_LIBRARY_PATH="${HOST_PREFIX}/lib:$LD_LIBRARY_PATH"
-    export PATH="${HOST_PREFIX}/bin:$OLDPATH"
+    export PATH="${HOST_PREFIX}/bin:$PATH:$OLDPATH"
 fi
