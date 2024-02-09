@@ -40,6 +40,7 @@ pushd ${NIMSDK}
             pushd $NIM_VERSION
                 chmod +x *sh
                 CC=clang CXX=clang++ ./build_all.sh
+                rm -rf build csources_v2 nimcache
             popd
         fi
     fi
@@ -62,13 +63,15 @@ echo fmt" ==== Panda3D: generic config {ARCH=} from {SDKROOT=} ===="
 --cc:clang
 --os:linux
 
---define:usemalloc
---noCppExceptions
---define:noCppExceptions
+#--noCppExceptions
+
 --exceptions:quirky
+--define:noCppExceptions
+#--define:usemalloc
+
 
 # gc : bohem => need libgc.so.1
---gc:orc
+--mm:orc
 --define:noSignalHandler
 
 #
@@ -99,7 +102,7 @@ when defined(wasi):
 
 
     switch("passC", fmt"-m32 -Djmp_buf=int")
-    switch("passC", "-Os -g3 -mllvm -inline-threshold=1")
+    switch("passC", "-O0 -g3 -mllvm -inline-threshold=1")
 
     switch("passL","-lstdc++ ")
 
@@ -138,8 +141,6 @@ switch("cincludes", fmt"{SDKROOT}/devices/{ARCH}/usr/include/panda3d")
 
 switch("out", fmt"out.{ARCH}")
 
-
-
 END
 
     cat > nimsdk_env.sh <<END
@@ -151,7 +152,7 @@ then
     . $WASISDK/wasisdk_env.sh
     export XDG_CONFIG_HOME=${NIMSDK}
     export NIMBLE_DIR=${NIMSDK}/pkg
-    export PATH=${NIMSDK}/${NIM_VERSION}/bin:$PATH
+    export PATH=${NIMSDK}/${NIM_VERSION}/bin:\${WASI_SDK_PREFIX}/bin:$PATH
     echo "
 
     * using nimsdk from \$(realpath \${NIMSDK}/\${NIM_VERSION}/bin)
@@ -164,7 +165,7 @@ then
         SDKROOT=$SDKROOT
         NIMSDK=$NIMSDK
         NIMBLE_DIR=\$NIMBLE_DIR
-        PATH=$PATH
+        PATH=\$PATH
 
         clang=\$(which clang)
         clang++=\$(which clang++)

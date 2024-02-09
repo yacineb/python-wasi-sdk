@@ -42,6 +42,25 @@ else
     fi
 fi
 
+# base wasm features pure is "mvp" , "bi" is bigint
+
+if [ -f /mvp ]
+then
+    export WASM_FLAVOUR=mvp
+    export WASM_EXTRA="-sMIN_SAFARI_VERSION=120000"
+    export WASM_PURE=true
+else
+    export WASM_FLAVOUR=bi
+
+    # extra features. Safari 14 is expected to have BIGINT, ignore the emsdk warnings.
+    export WASM_EXTRA="-sWASM_BIGINT -sMIN_SAFARI_VERSION=140100"
+
+    # tell to not normalize modules.
+    export WASM_PURE=false
+fi
+
+
+
 # ============ emscripten ==============
 
 # stable
@@ -53,6 +72,12 @@ fi
 
 #export EMFLAVOUR=${EMFLAVOUR:latest}
 export EMFLAVOUR=${EMFLAVOUR:-tot}
+
+#temp fix for oom on CI (Error: Process completed with exit code 143.)
+export EMSDK_NUM_CORES=1
+
+# for shared modules
+export PYDK_PYTHON_HOST_PLATFORM=wasm32-${WASM_FLAVOUR}-emscripten
 
 # ============== wasi sdk ===============
 
@@ -76,64 +101,40 @@ NIM_URL=https://github.com/nim-lang/Nim
 NIMSDK=${NIMSDK:-"${SDKROOT}/nimsdk"}
 
 
-# base wasm features pure is "mvp" , "bi" is bigint
-
-if [ -f /mvp ]
-then
-    export WASM_FLAVOUR=mvp
-    export WASM_EXTRA="-sMIN_SAFARI_VERSION=120000"
-    export WASM_PURE=true
-else
-    export WASM_FLAVOUR=bi
-
-    # extra features. Safari 14 is expected to have BIGINT, ignore the emsdk warnings.
-    export WASM_EXTRA="-sWASM_BIGINT -sMIN_SAFARI_VERSION=140100"
-
-    # tell to not normalize modules.
-    export WASM_PURE=false
-fi
-
-#temp fix for oom on CI (Error: Process completed with exit code 143.)
-export EMSDK_NUM_CORES=1
-
-export PYDK_PYTHON_HOST_PLATFORM=wasm32-${WASM_FLAVOUR}-emscripten
-
-if echo $LD_LIBRARY_PATH |grep -q ${HOST_PREFIX}/lib
-then
-    # config already set
-    echo -n
-else
-    OLDPATH=${PATH}
-
-    PATH=/usr/bin:/bin
-    for extrabin in /usr/local/bin /opt/bin
-    do
-        if echo $PATH|grep -q ":$extrabin"
-        then
-            continue
-        fi
-
-        if [ -d $extrabin ]
-        then
-            PATH=$extrabin:$PATH
-        fi
-    done
 
 
-    # this is python used for emsdk : ${SYS_PYTHON} -> ${EMSDK_PYTHON}
-    for py in 10 9 8 7
-    do
-        if command -v python${PYMAJOR}.${py} >/dev/null
-        then
-            export SYS_PYTHON=$(command -v python${PYMAJOR}.${py})
-            break
-        else
-            # sane default
-            export SYS_PYTHON=$(command -v python${PYMAJOR})
-        fi
-    done
 
-    export GITGET="git clone --recursive --no-tags --depth 1 --single-branch --branch"
-    export LD_LIBRARY_PATH="${HOST_PREFIX}/lib:$LD_LIBRARY_PATH"
-    export PATH="${HOST_PREFIX}/bin:$PATH:$OLDPATH"
-fi
+#OLDPATH=${PATH}
+
+PATH=/usr/bin:/bin
+for extrabin in /usr/local/bin /opt/bin
+do
+    if echo $PATH|grep -q ":$extrabin"
+    then
+        continue
+    fi
+
+    if [ -d $extrabin ]
+    then
+        PATH=$extrabin:$PATH
+    fi
+done
+
+
+# this is python used for emsdk : ${SYS_PYTHON} -> ${EMSDK_PYTHON}
+for py in 10 9 8 7
+do
+    if command -v python${PYMAJOR}.${py} >/dev/null
+    then
+        export SYS_PYTHON=$(command -v python${PYMAJOR}.${py})
+        break
+    else
+        # sane default
+        export SYS_PYTHON=$(command -v python${PYMAJOR})
+    fi
+done
+
+export GITGET="git clone --recursive --no-tags --depth 1 --single-branch --branch"
+export LD_LIBRARY_PATH="${HOST_PREFIX}/lib:$LD_LIBRARY_PATH"
+export PATH="${HOST_PREFIX}/bin:$PATH"
+

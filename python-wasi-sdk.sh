@@ -174,14 +174,18 @@ END
 
             CPU=wasm32 TARGET=wasi \
              PYDK_PYTHON_HOST_PLATFORM=wasm32-wasi \
-             PREFIX=/opt/python-wasm-sdk/devices/wasi/usr \
+             PREFIX=/opt/python-wasm-sdk/devices/wasisdk/usr \
              ./scripts/make-shells.sh
 
             cat >> $ROOT/wasm32-wasi-shell.sh <<END
 #!/bin/bash
-. ${SDKROOT}/wasisdk/wasisdk_env.sh
+. ${WASISDK}/wasisdk_env.sh
 
-export PS1="[PyDK:wasisdk] \w $ "
+parse_git_branch() {
+     git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
+}
+    export PS1="[PyDK:wasi]  \[\e[32m\]\w \[\e[91m\]\$(parse_git_branch)\[\e[00m\]\$ "
+
 
 END
 
@@ -201,6 +205,11 @@ END
         exit 156
     fi
 done
+
+
+wget https://github.com/bytecodealliance/wasmtime/releases/download/v17.0.1/wasmtime-v17.0.1-x86_64-linux.tar.xz -O- xzcat | tar xfv -
+mv -vf $(find wasmtime*|grep /wasmtime$) ${WASISDK}/bin/
+
 
 exit 0
 
