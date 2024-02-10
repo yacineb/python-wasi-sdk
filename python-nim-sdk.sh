@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SDKROOT=${SDKROOT:-/opt/python-wasm-sdk}
-CONFIG=$(realpath ${CONFIG:-config})
+CONFIG=$(realpath ${CONFIG:-${SDKROOT}/config})
 . $CONFIG
 
 if [ -d ${NIMSDK} ]
@@ -59,7 +59,7 @@ var SDKROOT = getEnv("SDKROOT","${SDKROOT}")
 --colors:on
 --define:release
 
-echo fmt" ==== Panda3D: generic config {ARCH=} from {SDKROOT=} ===="
+echo fmt"    ==== Panda3D: generic config {ARCH=} from {SDKROOT=} ===="
 --cc:clang
 --os:linux
 --threads:off
@@ -86,7 +86,7 @@ echo fmt" ==== Panda3D: generic config {ARCH=} from {SDKROOT=} ===="
 --define:debug
 
 when defined(wasi):
-    echo "  ===== Panda3D: wasi build ======"
+    echo "      ===== Panda3D: wasi build ======"
     # overwrite
     ARCH="wasisdk"
 
@@ -124,7 +124,7 @@ when defined(wasi):
     --opt:none
 
 else:
-    echo fmt"  ===== Panda3D: native {ARCH} build ======"
+    echo fmt"      ===== Panda3D: native {ARCH} build ======"
     switch("passL", "-lfreetype -lharfbuzz")
     # -lfftw3 -lassimp")
 
@@ -155,7 +155,7 @@ then
     . $WASISDK/wasisdk_env.sh
     export XDG_CONFIG_HOME=${NIMSDK}
     export NIMBLE_DIR=${NIMSDK}/pkg
-    export PATH=${NIMSDK}/${NIM_VERSION}/bin:$PATH
+    export PATH=${NIMSDK}/${NIM_VERSION}/bin:\$PATH
     echo "
 
     * using nimsdk from \$(realpath \${NIMSDK}/\${NIM_VERSION}/bin)

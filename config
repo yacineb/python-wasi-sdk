@@ -1,7 +1,7 @@
 #!/bin/bash
 if [[ -z ${CONFIG_ENV+z} ]]
 then
-CONFIG_ENV=true
+export CONFIG_ENV=true
 export LC_ALL=C
 export ROOT=${ROOT:-$(pwd)}
 export SDKROOT=${SDKROOT:-$ROOT}
