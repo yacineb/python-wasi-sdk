@@ -57,29 +57,32 @@ var ARCH="$(arch)"
 var SDKROOT = getEnv("SDKROOT","${SDKROOT}")
 
 --colors:on
---threads:off
+--define:release
 
 echo fmt" ==== Panda3D: generic config {ARCH=} from {SDKROOT=} ===="
 --cc:clang
 --os:linux
+--threads:off
+
 
 #--noCppExceptions
 
 --exceptions:quirky
 --define:noCppExceptions
-#--define:usemalloc
+--define:usemalloc
 
 
 # gc : bohem => need libgc.so.1
 --mm:orc
---define:noSignalHandler
 
+#--define:noSignalHandler
 #
+
 --define:static
 
 # better debug but optionnal/tweakable
 --parallelBuild:1
---opt:speed
+--opt:none
 --define:debug
 
 when defined(wasi):
@@ -93,30 +96,30 @@ when defined(wasi):
 
     --define:emscripten
     --define:static
-
-    # component model aka reactor
-    --noMain
-
     --cpu:wasm32
+
     switch("clibdir", fmt"{SDKROOT}/devices/{ARCH}/usr/lib/wasm32-wasi")
-
-
-    switch("passC", fmt"-m32 -Djmp_buf=int")
-    switch("passC", "-O0 -g3 -mllvm -inline-threshold=1")
-
-    switch("passL","-lstdc++ ")
 
     # more compat but in the long term workaround Panda3D instead
     # wasi emulations
     switch("passC", "-D_GNU_SOURCE")
     switch("passC", "-D_WASI_EMULATED_MMAN -D_WASI_EMULATED_SIGNAL -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_GETPID")
+
     switch("passL", "-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks")
+    switch("passL","-lstdc++")
 
 
     # don't use _start/main but _initialize instead
-    switch("passL", "-Wl,--export-all -mexec-model=reactor")
+    switch("passL", "-Wl,--no-entry,--export-all -mexec-model=reactor")
+    # component model aka reactor
+    --noMain
+
+    # FIXME
+    switch("passC", fmt"-m32 -Djmp_buf=int")
 
     # better debug but optionnal/tweakable
+    # switch("passC", "-O0 -g3 -mllvm -inline-threshold=1")
+
     --parallelBuild:1
     --opt:none
 
@@ -152,7 +155,7 @@ then
     . $WASISDK/wasisdk_env.sh
     export XDG_CONFIG_HOME=${NIMSDK}
     export NIMBLE_DIR=${NIMSDK}/pkg
-    export PATH=${NIMSDK}/${NIM_VERSION}/bin:\${WASI_SDK_PREFIX}/bin:$PATH
+    export PATH=${NIMSDK}/${NIM_VERSION}/bin:$PATH
     echo "
 
     * using nimsdk from \$(realpath \${NIMSDK}/\${NIM_VERSION}/bin)

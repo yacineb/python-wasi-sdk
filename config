@@ -1,4 +1,7 @@
 #!/bin/bash
+if [[ -z ${CONFIG_ENV+z} ]]
+then
+CONFIG_ENV=true
 export LC_ALL=C
 export ROOT=${ROOT:-$(pwd)}
 export SDKROOT=${SDKROOT:-$ROOT}
@@ -102,8 +105,6 @@ NIMSDK=${NIMSDK:-"${SDKROOT}/nimsdk"}
 
 
 
-
-
 #OLDPATH=${PATH}
 
 PATH=/usr/bin:/bin
@@ -137,4 +138,4 @@ done
 export GITGET="git clone --recursive --no-tags --depth 1 --single-branch --branch"
 export LD_LIBRARY_PATH="${HOST_PREFIX}/lib:$LD_LIBRARY_PATH"
 export PATH="${HOST_PREFIX}/bin:$PATH"
-
+fi

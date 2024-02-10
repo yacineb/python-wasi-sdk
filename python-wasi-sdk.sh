@@ -198,17 +198,18 @@ END
             ${SDKROOT}/python-nim-sdk.sh
         fi
 
+        wget https://github.com/bytecodealliance/wasmtime/releases/download/v17.0.1/wasmtime-v17.0.1-x86_64-linux.tar.xz -O-|xzcat|tar xfv -
+        mv -vf $(find wasmtime*|grep /wasmtime$) ${WASISDK}/bin/
+
         . ${SDKROOT}/scripts/pack-sdk.sh
 
     else
         echo "cd failed"  1>&2
-        exit 156
+        exit 208
     fi
 done
 
 
-wget https://github.com/bytecodealliance/wasmtime/releases/download/v17.0.1/wasmtime-v17.0.1-x86_64-linux.tar.xz -O- xzcat | tar xfv -
-mv -vf $(find wasmtime*|grep /wasmtime$) ${WASISDK}/bin/
 
 
 exit 0
