@@ -85,10 +85,9 @@ export PYDK_PYTHON_HOST_PLATFORM=wasm32-${WASM_FLAVOUR}-emscripten
 # ============== wasi sdk ===============
 
 # stable
-WASI_SDK=${WASI_SDK:-20}
-WASI_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK}/wasi-sdk-${WASI_SDK}.0-linux.tar.gz
-
-WASISDK="${SDKROOT}/wasisdk"
+export WASI_SDK=${WASI_SDK:-20}
+export WASI_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK}/wasi-sdk-${WASI_SDK}.0-linux.tar.gz
+export WASISDK="${SDKROOT}/wasisdk"
 
 
 # =============== Nimrod ====================
@@ -101,11 +100,9 @@ NIM_URL=https://nim-lang.org/download/${NIM_VERSION}-linux_x64.tar.xz
 NIM_VERSION=nim-git
 NIM_URL=https://github.com/nim-lang/Nim
 
-NIMSDK=${NIMSDK:-"${SDKROOT}/nimsdk"}
+export NIM_VERSION NIM_URL
+export NIMSDK=${NIMSDK:-"${SDKROOT}/nimsdk"}
 
-
-
-#OLDPATH=${PATH}
 
 PATH=/usr/bin:/bin
 for extrabin in /usr/local/bin /opt/bin
