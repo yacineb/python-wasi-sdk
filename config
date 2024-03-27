@@ -21,6 +21,7 @@ mkdir -p ${SDKROOT}/build/pycache ${SDKROOT}/build/cache
 export XDG_CACHE_HOME=$(realpath ${SDKROOT}/build/cache)
 export PYTHONPYCACHEPREFIX=${PYTHONPYCACHEPREFIX:-$(realpath ${SDKROOT}/build/pycache)}
 
+export WHEELS=/data/git/archives/repo
 
 export HOME=${SDKROOT}
 
@@ -117,6 +118,11 @@ do
         PATH=$extrabin:$PATH
     fi
 done
+
+# ================ aosp ===================
+
+AOSP_NDK=25.2.9519653
+
 
 
 # this is python used for emsdk : ${SYS_PYTHON} -> ${EMSDK_PYTHON}

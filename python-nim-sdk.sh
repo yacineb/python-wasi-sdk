@@ -108,11 +108,16 @@ when defined(wasi):
     switch("passL", "-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks")
     switch("passL","-lstdc++")
 
-
-    # don't use _start/main but _initialize instead
-    switch("passL", "-Wl,--no-entry,--export-all -mexec-model=reactor")
-    # component model aka reactor
-    --noMain
+    when defined(app):
+        echo " @@@@@ APP MODE @@@@@"
+#        switch("passL", "-Wl,--no-entry")
+#        switch("passL", "-Wl,--no-entry,--export-all -mexec-model=reactor")
+        --noMain
+    else:
+        # don't use _start/main but _initialize instead
+        switch("passL", "-Wl,--no-entry,--export-all -mexec-model=reactor")
+        # component model aka reactor
+        --noMain
 
     # FIXME
     switch("passC", fmt"-m32 -Djmp_buf=int")

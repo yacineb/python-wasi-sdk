@@ -59,6 +59,13 @@ mktemp(char *tmpl)
 	return tmpl;
 }
 
+static int
+mkstemp(char *tmpl) {
+    FILE *ftemp = fopen(mktemp(tmpl),"w");
+    return fileno(ftemp);
+}
+
+
 #if 0
 
 static char *
@@ -95,14 +102,15 @@ static char *
 tempnam (const char *dir, const char *pfx)
 {
     char buf[FILENAME_MAX];
-
+    int all;
+    char *ptr;
     int	dirlen = strlen(dir);
     if (dirlen>=FILENAME_MAX)
     	return NULL;
 
     memcpy(buf,dir,FILENAME_MAX);
     buf[dirlen] = '/';
-    int all;
+
 
     if (pfx) {
         all = dirlen + 1 + strlen(pfx);
@@ -116,7 +124,7 @@ tempnam (const char *dir, const char *pfx)
     memcpy(buf+all, "XXXXXX", 6	);
     all += 6 ;
     buf[all]= 0;
-    char *ptr =	(char *)malloc(all);
+    ptr =	(char *)malloc(all);
     memcpy(ptr,	buf, all);
     return mktemp(ptr);
 }
@@ -128,3 +136,38 @@ lockf(int fd, int cmd, off_t len) {
     return 0;
 }
 
+static int
+pclose(FILE *stream){
+    (void)stream;
+    return 0;
+}
+
+
+static pid_t
+getpid(void) {
+    char *val = getenv("WASIX_PID");
+    char *end = val + strlen(val);
+    if (val && val[0] != '\0') {
+	return (pid_t)strtol(val, &end, 10);
+    }
+#ifdef _WASIX_PID
+    return (pid_t)(_WASIX_PID);
+#else
+    return 66600;
+#endif
+}
+
+
+static pid_t 
+getppid(void) {
+    char *val = getenv("WASIX_PPID");
+    char *end = val + strlen(val);
+    if (val && val[0] != '\0') {
+	return (pid_t)strtol(val, &end, 10);
+    }
+#ifdef _WASIX_PPID
+    return (pid_t)(_WASIX_PPID);
+#else
+    return 1;
+#endif
+}

@@ -18,20 +18,31 @@ if echo $0|grep -q python-wasm-sdk
 then
     echo " * adding emsdk to wasm-sdk"
     emsdk=true
-    wasisdk=false
-    nimsdk=false
+    wasisdk=${wasisdk:-false}
+    nimsdk=${nimsdk:-false}
 else
     emsdk=false
-    BUILDS=3.12
-    echo " * adding wasi-sdk to wasm-sdk"
+    BUILDS=3.13
     wasisdk=true
     nimsdk=true
 fi
 
+if $wasisdk
+then
+    echo " * adding wasi-sdk to wasm-sdk"
+fi
+
+if $nimsdk
+then
+    echo " * adding nim-sdk to wasm-sdk"
+fi
+
+
+
 
 if [ -d ${SDKROOT} ]
 then
-    echo "assming destination $SDKROOT is ready"
+    echo "Assuming destination $SDKROOT is ready"
 else
     sudo mkdir -p ${SDKROOT}
     sudo chmod 777 ${SDKROOT}
@@ -43,18 +54,12 @@ ORIGIN=$(pwd)
 
 # 3.12 3.11 3.10
 
-BUILDS=${BUILDS:-3.11 3.13 3.12}
+BUILDS=${BUILDS:-3.12 3.13}
 
 for PYBUILD in $BUILDS
 do
     cd "$ORIGIN"
 
-#    if echo $PYBUILD|grep -q 12$
-#    then
-#        wasisdk=true
-#    else
-#        wasisdk=false
-#    fi
 
     if [ -f ${SDKROOT}/dev ]
     then
@@ -73,6 +78,9 @@ do
 
         # make install cpython will force bytecode generation
         export PYTHONPYCACHEPREFIX="$(realpath build/pycache)"
+
+        # reset config
+        unset CONFIG_ENV
 
         . ${CONFIG:-config}
 
@@ -106,9 +114,9 @@ export PYTHONPYCACHEPREFIX=$PYTHONPYCACHEPREFIX
 export HOME=${SDKROOT}
 export PATH=${SDKROOT}/devices/$(arch)/usr/bin:\$PATH
 export LD_LIBRARY_PATH=${SDKROOT}/devices/$(arch)/usr/lib:${SDKROOT}/devices/$(arch)/usr/lib64:$LD_LIBRARY_PATH
-${SDKROOT}/devices/$(arch)/usr/bin/python\${PYBUILD:-$PYBUILD} $@
+${SDKROOT}/devices/$(arch)/usr/bin/python\${PYBUILD:-$PYBUILD} \$@
 END
-        chmod + /opt/python-wasm-sdk/devices/$(arch)/usr/bin/py
+        chmod +x /opt/python-wasm-sdk/devices/$(arch)/usr/bin/py
 
 
         if $emsdk

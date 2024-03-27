@@ -47,6 +47,7 @@ then
     export RANLIB="${WASI_SDK_PREFIX}/bin/ranlib"
 
     export CC="${WASISDK}/bin/wasi-c"
+    export WASI_CC="${WASISDK}/bin/wasi-c"
     export CPP="${WASISDK}/bin/wasi-cpp"
     export CXX="${WASISDK}/bin/wasi-c++"
 
