@@ -18,7 +18,7 @@ PYPATCH=true
 [ -f $HPY ] || REBUILD=true
 
 
-if echo $PYBUILD |grep -q 13$
+if echo $PYBUILD |grep -q 14$
 then
     if [ -d cpython${PYBUILD} ]
     then
@@ -43,21 +43,31 @@ then
 fi
 
 
+if echo $PYBUILD |grep -q 13$
+then
+    wget -q -c https://www.python.org/ftp/python/3.13.0/Python-3.13.0b3.tar.xz
+    tar xf Python-3.13.0b3.tar.xz
+    ln -s Python-3.13.0b3 cpython${PYBUILD}
+
+    pushd cpython${PYBUILD}
+
+    popd
+
+fi
+
 if echo $PYBUILD |grep -q 12$
 then
-    wget -q -c https://www.python.org/ftp/python/3.12.2/Python-3.12.2.tar.xz
-    tar xf Python-3.12.2.tar.xz
-    ln -s Python-3.12.2 cpython${PYBUILD}
-    export REBUILD=true
+    wget -q -c https://www.python.org/ftp/python/3.12.4/Python-3.12.4.tar.xz
+    tar xf Python-3.12.4.tar.xz
+    ln -s Python-3.12.4 cpython${PYBUILD}
 fi
 
 
 if echo $PYBUILD | grep -q 11$
 then
-    wget -q -c https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tar.xz
-    tar xf Python-3.11.8.tar.xz
-    ln -s Python-3.11.8 cpython${PYBUILD}
-    export REBUILD=true
+    wget -q -c https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
+    tar xf Python-3.11.9.tar.xz
+    ln -s Python-3.11.9 cpython${PYBUILD}
 fi
 
 popd
