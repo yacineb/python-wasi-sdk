@@ -1,0 +1,164 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 10af989..36f02ce 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -343,7 +343,7 @@ endif()
+ 
+ # All these ENABLED_BY_DEFAULT vars will default to ON if not specified, so
+ #  you only need to have a platform override them if they are disabling.
+-if(EMSCRIPTEN)
++if(EMSCRIPTEN OR WASI)
+   # Set up default values for the currently supported set of subsystems:
+   # Emscripten/Javascript does not have assembly support, a dynamic library
+   # loading architecture, or low-level CPU inspection.
+@@ -482,6 +482,7 @@ set_option(SDL_METAL               "Enable Metal support" ${APPLE})
+ set_option(SDL_KMSDRM              "Use KMS DRM video driver" ${UNIX_SYS})
+ dep_option(SDL_KMSDRM_SHARED       "Dynamically load KMS DRM support" ON "SDL_KMSDRM" OFF)
+ set_option(SDL_OFFSCREEN           "Use offscreen video driver" ON)
++set_option(SDL_SIXEL           "Use offscreen video driver" ON)
+ option_string(SDL_BACKGROUNDING_SIGNAL "number to use for magic backgrounding signal or 'OFF'" OFF)
+ option_string(SDL_FOREGROUNDING_SIGNAL "number to use for magic foregrounding signal or 'OFF'" OFF)
+ set_option(SDL_HIDAPI              "Enable the HIDAPI subsystem" ON)
+@@ -732,7 +733,7 @@ if(USE_GCC OR USE_CLANG OR USE_INTELCC OR USE_QCC)
+ 
+   # Force color diagnostics when one of these conditions are met
+   if(DEFINED ENV{CI} OR DEFINED ENV{USE_CCACHE} OR CMAKE_GENERATOR MATCHES Ninja)
+-    if(EMSCRIPTEN OR (USE_GCC AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 4.9))
++    if(EMSCRIPTEN OR WASI OR (USE_GCC AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 4.9))
+       list(APPEND EXTRA_CFLAGS -fdiagnostics-color=always)
+     elseif(USE_CLANG AND NOT CMAKE_C_COMPILER_ID MATCHES AppleClang)
+       list(APPEND EXTRA_CFLAGS -fcolor-diagnostics)
+@@ -1249,6 +1250,15 @@ if(SDL_VIDEO)
+     set(HAVE_OFFSCREEN TRUE)
+     set(HAVE_SDL_VIDEO TRUE)
+   endif()
++  if(SDL_SIXEL)
++    set(SDL_VIDEO_DRIVER_SIXEL 1)
++    file(GLOB VIDEO_SIXEL_SOURCES ${SDL2_SOURCE_DIR}/src/video/sixel/*.c)
++    list(APPEND SOURCE_FILES ${VIDEO_SIXEL_SOURCES})
++    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/opt/python-wasm-sdk/devices/x86_64/usr/include")
++    set(HAVE_SIXEL TRUE)
++    set(HAVE_SDL_VIDEO TRUE)
++  endif()
++
+ endif()
+ 
+ # Platform-specific options and settings
+@@ -1388,6 +1398,22 @@ if(ANDROID)
+     set(HAVE_CLOCK_GETTIME 1)
+   endif()
+ 
++elseif(WASI)
++
++  if(SDL_TIMERS)
++    set(SDL_TIMER_UNIX 1)
++    file(GLOB TIMER_SOURCES ${SDL2_SOURCE_DIR}/src/timer/unix/*.c)
++    list(APPEND SOURCE_FILES ${TIMER_SOURCES})
++    set(HAVE_SDL_TIMERS TRUE)
++
++    if(SDL_CLOCK_GETTIME)
++      set(HAVE_CLOCK_GETTIME 1)
++    endif()
++  endif()
++
++  CheckPTHREAD()
++  CheckLibUnwind()
++
+ elseif(EMSCRIPTEN)
+   # Hide noisy warnings that intend to aid mostly during initial stages of porting a new
+   # project. Uncomment at will for verbose cross-compiling -I/../ path info.
+@@ -3005,7 +3031,7 @@ endif()
+ # We always need to have threads and timers around
+ if(NOT HAVE_SDL_THREADS)
+   # The emscripten platform has been carefully vetted to work without threads
+-  if (EMSCRIPTEN)
++  if (EMSCRIPTEN OR WASI)
+     set(SDL_THREADS_DISABLED 1)
+     file(GLOB THREADS_SOURCES ${SDL2_SOURCE_DIR}/src/thread/generic/*.c)
+     list(APPEND SOURCE_FILES ${THREADS_SOURCES})
+diff --git a/include/SDL_config.h.cmake b/include/SDL_config.h.cmake
+index ffcafd8..436060f 100644
+--- a/include/SDL_config.h.cmake
++++ b/include/SDL_config.h.cmake
+@@ -412,6 +412,7 @@
+ #cmakedefine SDL_VIDEO_DRIVER_DIRECTFB_DYNAMIC @SDL_VIDEO_DRIVER_DIRECTFB_DYNAMIC@
+ #cmakedefine SDL_VIDEO_DRIVER_DUMMY @SDL_VIDEO_DRIVER_DUMMY@
+ #cmakedefine SDL_VIDEO_DRIVER_OFFSCREEN @SDL_VIDEO_DRIVER_OFFSCREEN@
++#cmakedefine SDL_VIDEO_DRIVER_SIXEL @SDL_VIDEO_DRIVER_SIXEL@
+ #cmakedefine SDL_VIDEO_DRIVER_WINDOWS @SDL_VIDEO_DRIVER_WINDOWS@
+ #cmakedefine SDL_VIDEO_DRIVER_WINRT @SDL_VIDEO_DRIVER_WINRT@
+ #cmakedefine SDL_VIDEO_DRIVER_WAYLAND @SDL_VIDEO_DRIVER_WAYLAND@
+diff --git a/src/dynapi/SDL_dynapi.c b/src/dynapi/SDL_dynapi.c
+index 861f88a..e40b4a5 100644
+--- a/src/dynapi/SDL_dynapi.c
++++ b/src/dynapi/SDL_dynapi.c
+@@ -408,6 +408,12 @@ static SDL_INLINE void *get_sdlapi_entry(const char *fname, const char *sym)
+     return (void *)retval;
+ }
+ 
++#elif defined(__wasi__)
++static SDL_INLINE void *
++get_sdlapi_entry(const char *fname, const char *sym) {
++    return NULL;
++}
++
+ #else
+ #error Please define your platform.
+ #endif
+diff --git a/src/events/SDL_quit.c b/src/events/SDL_quit.c
+index cd629a9..7b56c84 100644
+--- a/src/events/SDL_quit.c
++++ b/src/events/SDL_quit.c
+@@ -28,6 +28,15 @@
+ #include <signal.h>
+ #endif
+ 
++#if defined(__wasi__)
++#   if defined(HAVE_SIGNAL_H)
++#       undef HAVE_SIGNAL_H
++#   endif
++#   if defined(HAVE_SIGACTION)
++#       undef HAVE_SIGACTION
++#   endif
++#endif
++
+ #include "SDL_events.h"
+ #include "SDL_events_c.h"
+ 
+@@ -50,8 +59,9 @@ static SDL_bool send_foregrounding_pending = SDL_FALSE;
+ static void SDL_HandleSIG(int sig)
+ {
+     /* Reset the signal handler */
++#if defined(HAVE_SIGNAL_H)
+     (void)signal(sig, SDL_HandleSIG);
+-
++#endif
+     /* Send a quit event next time the event loop pumps. */
+     /* We can't send it in signal handler; SDL_malloc() might be interrupted! */
+     if ((sig == SIGINT) || (sig == SIGTERM)) {
+diff --git a/src/video/SDL_sysvideo.h b/src/video/SDL_sysvideo.h
+index 3daff4c..7f6a11f 100644
+--- a/src/video/SDL_sysvideo.h
++++ b/src/video/SDL_sysvideo.h
+@@ -482,6 +482,7 @@ extern VideoBootStrap VIVANTE_bootstrap;
+ extern VideoBootStrap Emscripten_bootstrap;
+ extern VideoBootStrap QNX_bootstrap;
+ extern VideoBootStrap OFFSCREEN_bootstrap;
++extern VideoBootStrap SIXEL_bootstrap;
+ extern VideoBootStrap NGAGE_bootstrap;
+ extern VideoBootStrap OS2DIVE_bootstrap;
+ extern VideoBootStrap OS2VMAN_bootstrap;
+diff --git a/src/video/SDL_video.c b/src/video/SDL_video.c
+index 91db5eb..37e6b2d 100644
+--- a/src/video/SDL_video.c
++++ b/src/video/SDL_video.c
+@@ -142,6 +142,9 @@ static VideoBootStrap *bootstrap[] = {
+ #ifdef SDL_VIDEO_DRIVER_NGAGE
+     &NGAGE_bootstrap,
+ #endif
++#ifdef SDL_VIDEO_DRIVER_SIXEL
++    &SIXEL_bootstrap,
++#endif
+ #ifdef SDL_VIDEO_DRIVER_OFFSCREEN
+     &OFFSCREEN_bootstrap,
+ #endif

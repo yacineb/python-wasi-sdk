@@ -4,7 +4,8 @@
 
 export PYTHON_FOR_BUILD=${PYTHON_FOR_BUILD:-${HPY}}
 
-mkdir -p build/cpython-host
+mkdir -p build/cpython-host $HOST_PREFIX/lib
+[ -L $HOST_PREFIX/lib64 ] || ln -s $HOST_PREFIX/lib $HOST_PREFIX/lib64
 
 if $REBUILD
 then
@@ -79,11 +80,10 @@ END
 
 END
 
-    if echo $PYBUILD|grep -q 3.13$
+    if echo $PYBUILD|grep -q 3\\.14$
     then
         # Prevent freezing bytecode with a different magic
         rm -f $HOST_PREFIX/bin/python3 $HOST_PREFIX/bin/python${PYBUILD}
-
         if command -v python3.${PYMINOR}
         then
             echo "
@@ -99,21 +99,29 @@ END
             " 1>&2
             sleep 6
         fi
-        GIL="--disable-gil"
-    else
-        GIL=""
     fi
 
-    if CC=clang CXX=clang++ CFLAGS="-fPIC" CPPFLAGS="-fPIC" \
-     ${ROOT}/src/cpython${PYBUILD}/configure \
-     --prefix=$HOST_PREFIX $PYOPTS $GIL
+#  CFLAGS="-fPIC" CPPFLAGS="-fPIC"
+    CNF="${ROOT}/src/cpython${PYBUILD}/configure \
+     --prefix=$HOST_PREFIX $PYOPTS $GIL"
+    if CC=clang CXX=clang++ $CNF
     then
-        if make -j$(nproc) install
+        if make -j$(nproc)
         then
-            echo "CPython $PYTHON_FOR_BUILD ready" 1>&2
+            if make install
+            then
+                echo "CPython $PYTHON_FOR_BUILD ready" 1>&2
+            else
+                echo "CPython $PYTHON_FOR_BUILD failed to install" 1>&2
+                exit 117
+            fi
         else
-            echo "failed to build $PYTHON_FOR_BUILD"  1>&2
-            exit 118
+            echo "
+failed to build $PYTHON_FOR_BUILD
+
+CC=clang CXX=clang++ $CNF
+"  1>&2
+            exit 125
         fi
     else
         echo "
@@ -121,9 +129,12 @@ END
     ERROR: could not configure cpython
 
     reminder: you need clang libffi-dev and usual cpython requirements.
+
+CC=clang CXX=clang++ $CNF
+
 ==========================================================================
     " 1>&2
-        exit 133
+        exit 149
     fi
 
     popd

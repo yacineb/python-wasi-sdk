@@ -37,20 +37,6 @@ export HPIP="${HPY} -mpip"
 export CPOPTS="-Os -g0 -fPIC"
 
 
-if [ -f ${ROOT}/dev ]
-then
-    export COPTS="-O1 -g3 -fPIC"
-    export QUIET=""
-else
-    export COPTS="-Os -g0 -fPIC"
-    if ${VERBOSE:-false}
-    then
-        export QUIET=""
-    else
-        export QUIET="2>&1 > $PYTHONPYCACHEPREFIX/.log"
-    fi
-fi
-
 # base wasm features pure is "mvp" , "bi" is bigint
 
 if [ -f /mvp ]
@@ -61,26 +47,20 @@ then
 else
     export WASM_FLAVOUR=bi
 
-    # extra features. Safari 14 is expected to have BIGINT, ignore the emsdk warnings.
-    export WASM_EXTRA="-sWASM_BIGINT -sMIN_SAFARI_VERSION=140100"
+    # extra features. Safari 140100 is expected to have BIGINT ? emsdk warnings ?
+    export WASM_EXTRA="-sWASM_BIGINT -sMIN_SAFARI_VERSION=150000"
 
     # tell to not normalize modules.
     export WASM_PURE=false
 fi
 
-
+EXTRABINS="/usr/local/bin /opt/bin"
 
 # ============ emscripten ==============
+# stable==latest dev==tot
+export EMFLAVOUR=${EMFLAVOUR:latest}
+export EMSDK_QUIET=1
 
-# stable
-# export EMFLAVOUR=3.1.34
-
-# embind broke in 3.1.48-tot (coro suspend/resume)
-
-# embding more broken in 3.1.51
-
-#export EMFLAVOUR=${EMFLAVOUR:latest}
-export EMFLAVOUR=${EMFLAVOUR:-tot}
 
 #temp fix for oom on CI (Error: Process completed with exit code 143.)
 export EMSDK_NUM_CORES=1
@@ -91,17 +71,20 @@ export PYDK_PYTHON_HOST_PLATFORM=wasm32-${WASM_FLAVOUR}-emscripten
 # ============== wasi sdk ===============
 
 # stable
-export WASI_SDK=${WASI_SDK:-20}
-export WASI_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK}/wasi-sdk-${WASI_SDK}.0-linux.tar.gz
+export WASI_SDK=${WASI_SDK:-24.0}
+export WASI_SDK_MAJOR=$(echo ${WASI_SDK}|cut -d. -f1)
+export WASI_SDK_MINOR=$(echo ${WASI_SDK}|cut -d. -f2)
+export WASI_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_MAJOR}/wasi-sdk-${WASI_SDK}-$(arch)-linux.tar.gz
 export WASISDK="${SDKROOT}/wasisdk"
 
 export WASMTIME_HOME=$WASISDK
 
+# EXTRABINS="$EXTRABINS $WASISDK/bin"
 
 # =============== Nimrod ====================
 
 # stable
-NIM_VERSION=nim-2.0.2
+NIM_VERSION=nim-2.0.8
 NIM_URL=https://nim-lang.org/download/${NIM_VERSION}-linux_x64.tar.xz
 
 
@@ -111,9 +94,36 @@ NIM_URL=https://github.com/nim-lang/Nim
 export NIM_VERSION NIM_URL
 export NIMSDK=${NIMSDK:-"${SDKROOT}/nimsdk"}
 
+# EXTRABINS="$EXTRABINS $NIMSDK/bin"
+
+# ================ go =====================
+export GOPRIVATE=*
+export GONOPROXY=*
+export GONOSUMDB=*
+export GOMODCACHE=$XDG_CACHE_HOME
+export GOPATH=$SDKROOT/go
+export GOROOT=$SDKROOT/go
+
+EXTRABINS="$EXTRABINS $GOROOT/bin"
+
+# ============== wasmer  =================
+# curl https://get.wasmer.io -sSfL | sh
+
+export WASMER_DIR==/opt/python-wasm-sdk/wasmer
+
+
+# ================ bun ====================
+export BUN_INSTALL=${SDKROOT}/bun
+
+EXTRABINS="$EXTRABINS $BUN_INSTALL/bin"
+
+# ================ aosp ===================
+
+AOSP_NDK=25.2.9519653
+
 
 PATH=/usr/bin:/bin
-for extrabin in /usr/local/bin /opt/bin
+for extrabin in $EXTRABINS
 do
     if echo $PATH|grep -q ":$extrabin"
     then
@@ -126,18 +136,9 @@ do
     fi
 done
 
-# ================ bun ====================
-export BUN_INSTALL="$HOME/.bun"
-export PATH=$BUN_INSTALL/bin:$PATH
-
-# ================ aosp ===================
-
-AOSP_NDK=25.2.9519653
-
-
 
 # this is python used for emsdk : ${SYS_PYTHON} -> ${EMSDK_PYTHON}
-for py in 10 9 8 7
+for py in 10 9 8
 do
     if command -v python${PYMAJOR}.${py} >/dev/null
     then

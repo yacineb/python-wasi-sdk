@@ -158,7 +158,7 @@ getpid(void) {
 }
 
 
-static pid_t 
+static pid_t
 getppid(void) {
     char *val = getenv("WASIX_PPID");
     char *end = val + strlen(val);
@@ -170,4 +170,146 @@ getppid(void) {
 #else
     return 1;
 #endif
+}
+
+
+static gid_t
+getegid(void) {
+	return 99;
+}
+
+static uid_t
+geteuid(void) {
+    return 1000;
+}
+
+static mode_t
+umask(mode_t mask) {
+	return 18;
+}
+
+
+// errno.h
+#define EHOSTDOWN 117		/* Host is down */
+
+
+// pwd.h
+
+static int
+//getpwuid_r(uid_t uid, struct passwd *pwd, char *buf, size_t buflen, struct passwd **result) {
+getpwuid_r(uid_t uid, void *pwd, char *buf, size_t buflen, void **result) {
+  return ENOENT;
+}
+
+
+static int
+kill(pid_t pid, int sig) {
+	puts("nokill");
+    return 0;
+}
+
+
+// socket.h
+#define SO_KEEPALIVE    9
+#define SO_REUSEADDR    2
+
+typedef uint32_t socklen_t;
+
+static int
+bind(int socket, void *address, socklen_t address_len) {
+	return 0;
+}
+
+
+
+#if defined(PYDK)
+
+    extern ssize_t recvfrom(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
+    extern int socket(int domain, int type, int protocol);
+    extern ssize_t sendto(int socket, const void *message, size_t length, int flags, void *dest_addr, socklen_t dest_len);
+    extern int connect(int socket, void *address, socklen_t address_len);
+
+
+#else
+
+static int
+connect(int socket, void *address, socklen_t address_len) {
+	return 0;
+}
+
+static ssize_t
+sendto(int socket, const void *message, size_t length, int flags, void *dest_addr, socklen_t dest_len) {
+	return 0;
+}
+static int
+fd_sock = 100;
+
+static ssize_t
+recvfrom(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len) {
+	return 0;
+}
+
+static int
+socket(int domain, int type, int protocol) {
+    return fd_sock++;
+}
+
+#endif
+
+static int
+setsockopt(int socket, int level, int option_name, const void *option_value, socklen_t option_len) {
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+#define SOCK_RAW 3
+#define SO_ERROR 0x1007
+
+static struct servent *
+getservbyname(const char *name, const char *proto) {
+    return NULL;
+}
+
+static struct servent *
+getservbyport(int port, const char *proto) {
+    return NULL;
+}
+
+static struct protoent *
+getprotobyname(const char *name) {
+    return NULL;
+}
+static struct hostent *
+gethostbyname(const char *name){
+    return NULL;
+}
+
+static struct hostent *
+gethostbyaddr(const void *addr, socklen_t len, int type) {
+    return NULL;
+}
+
+static struct protoent *
+getprotoent(void) {
+    return NULL;
+}
+
+static const char cc_hstrerror[] = "hstrerror";
+
+static int * __h_errno_location(void){
+    return NULL;
+}
+
+static const char *
+hstrerror(int ecode)
+{
+    return &cc_hstrerror[0];
 }
