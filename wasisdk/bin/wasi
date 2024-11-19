@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/usr/bin/python3
 
 # https://stackoverflow.com/questions/20530105/how-to-specify-a-custom-stdlib-directory-for-llvm
 # https://stackoverflow.com/questions/60712261/how-to-prevent-osx-gcc-to-always-search-usr-local-include
 
+"""
 if ${CONFIGURE:-false}
 then
     CXX_LIBS=
@@ -11,15 +12,13 @@ then
     CXX=clang++
     CC=clang
 else
-    WASI_CFG="--sysroot=${WASI_SDK_PREFIX}/share/wasi-sysroot -iwithsysroot /include/c++/v1"
-
     # -I${WASISDK}/hotfix using upstream/share/wasi-sysroot/include/wasm32-wasi instead
 
     if echo "${@}"|grep -q \\-fno-builtin
     then
         WASI_PATCH=""
     else
-        WASI_PATCH="-include ${WASISDK}/hotfix/patch.h -isystem ${WASISDK}/hotfix"
+
     fi
 
     WASI_DEF="-D_GNU_SOURCE -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_SIGNAL -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_GETPID"
@@ -56,4 +55,97 @@ else
         $CC "${@}" ${WASI_LNK} -Wno-unused-function
     fi
 fi
+"""
+
+
+import sys
+import os
+from pathlib import Path
+
+
+def dbg(*argv, **kw):
+    kw.setdefault("file", sys.stderr)
+    return print(*argv, **kw)
+
+SDKROOT = Path(os.environ.get("SDKROOT", "/opt/python-wasm-sdk"))
+WASISDK = Path(os.environ.get("WASISDK", "/opt/python-wasm-sdk/emsdk"))
+WASI_SDK_PREFIX=Path(os.environ.get("WASI_SDK_PREFIX", "/opt/python-wasm-sdk/wasisdk/upstream"))
+PREFIX = Path(os.environ.get("PREFIX", "/opt/python-wasm-sdk/devices/wasisdk/usr"))
+
+#dbg(sys.argv)
+
+exe = sys.argv.pop(0)
+
+
+WASI_CFG="--sysroot=${WASI_SDK_PREFIX}/share/wasi-sysroot -iwithsysroot /include/c++/v1"
+WASI_PATCH=f"-include {WASISDK}/hotfix/patch.h -isystem {WASISDK}/hotfix"
+WASI_DEF= "-D_GNU_SOURCE -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_SIGNAL -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_GETPID"
+
+WASI_CFLAGS = os.getenv("WASI_CFLAGS","")
+
+if WASI_CFLAGS:
+    WASI_DEF=f"{WASI_DEF} {WASI_CFLAGS}"
+
+
+if exe.endswith('c++'):
+    mode = "++"
+    args= ["clang++"]
+    fixargs = True
+elif exe.endswith('cpp'):
+    mode = "-cpp"
+    args = ["clang-cpp"]
+    args.extend(WASI_DEF.split(' '))
+    args.extend(sys.argv)
+    fixargs = False
+else:
+    mode = ""
+    args = ["clang"]
+    fixargs = True
+
+
+if fixargs:
+    for arg in sys.argv:
+
+        if arg in ("-v", "--version"):
+            dbg(*sys.argv)
+            args=[exe]
+            args.extend(sys.argv)
+            break
+
+        if arg == '-Wl,--start-group':
+            continue
+        if arg == '-Wl,--end-group':
+            continue
+
+        if arg == '-fno-builtin':
+            WASI_PATCH=""
+
+        args.append(arg)
+    else:
+
+        if 0:
+            dbg("="*80)
+            dbg(*sys.argv)
+            dbg("="*80)
+            dbg(*args)
+            dbg("_"*80)
+
+        WASI_CFG="--sysroot=${WASI_SDK_PREFIX}/share/wasi-sysroot -iwithsysroot /include/c++/v1"
+
+        if WASI_PATCH:
+            args.extend(WASI_PATCH.split(' '))
+        args.extend("-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks".split(' '))
+        args.extend(WASI_DEF.split(' '))
+
+        args.extend( "-fPIC -fno-rtti -fno-exceptions -z stack-size=131072".split(' ') )
+        args.extend("-Wno-unknown-pragmas -Wno-unused-but-set-variable -Wno-unused-command-line-argument -Wno-unsupported-floating-point-opt -Wno-nullability-completeness".split(' '))
+        # pg
+        args.append("-Wno-missing-prototypes")
+        # hotpatch
+        args.append("-Wno-unused-function")
+
+
+exe = f"{WASI_SDK_PREFIX}/bin/clang{mode}"
+#dbg(exe,len(args),*args)
+os.execv(exe, args)
 

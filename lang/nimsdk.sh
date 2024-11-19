@@ -1,55 +1,56 @@
 #!/bin/bash
 
-SDKROOT=${SDKROOT:-/opt/python-wasm-sdk}
-CONFIG=$(realpath ${CONFIG:-${SDKROOT}/config})
-. $CONFIG
+export ${SDKROOT:-/tmp/sdk}
 
-if [ -d ${NIMSDK} ]
-then
-    echo "
+pushd ${SDKROOT}
+    . ${CONFIG:-config}
 
-
-
-    will not overwrite existing working directory
-        NIMSDK=${NIMSDK}
-
-
-
-"
-else
-    mkdir ${NIMSDK}
-fi
-
-
-pushd ${NIMSDK}
-    if [ -d $NIM_VERSION/bin ]
+    if [ -d ${NIMSDK} ]
     then
         echo "
+
+
+
+        will not overwrite existing working directory
+            NIMSDK=${NIMSDK}
+
+
+
+    "
+    else
+        mkdir ${NIMSDK}
+    fi
+
+
+    pushd ${NIMSDK}
+        if [ -d $NIM_VERSION/bin ]
+        then
+            echo "
 
     will not overwrite existing Nim build found in
         ${NIMSDK}/$NIM_VERSION/bin
 
 
     "
-    else
-        if echo $NIM_URL|grep -q nim-lang\.org
-        then
-            echo ERROR download/install release from $NIM_URL
         else
-            $GITGET devel $NIM_URL $NIM_VERSION
-            pushd $NIM_VERSION
-                chmod +x *sh
-                CC=clang CXX=clang++ ./build_all.sh
-                rm -rf build csources_v2 nimcache
-            popd
+            if echo $NIM_URL|grep -q nim-lang\.org
+            then
+                echo ERROR download/install release from $NIM_URL
+            else
+                $GITGET devel $NIM_URL $NIM_VERSION
+                pushd $NIM_VERSION
+                    chmod +x *sh
+                    CC=clang CXX=clang++ ./build_all.sh
+                    rm -rf build csources_v2 nimcache
+                popd
+            fi
         fi
-    fi
 
 # --usenimcache
 
-    mkdir -p ${NIMSDK}/nim
+        mkdir -p ${NIMSDK}/nim
 
-    cat > ${NIMSDK}/nim/config.nims <<END
+        cat > ${NIMSDK}/nim/config.nims <<END
 echo "  ==== python-nim-sdk ======"
 import std/strformat
 
@@ -151,7 +152,7 @@ switch("out", fmt"out.{ARCH}")
 
 END
 
-    cat > nimsdk_env.sh <<END
+        cat > nimsdk_env.sh <<END
 if [[ -z \${NIMSDK_ENV+z} ]]
 then
     export NIMSDK_ENV=true
@@ -190,5 +191,6 @@ else
 fi
 END
 
-popd
+    popd
 
+popd
