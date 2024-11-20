@@ -21,6 +21,10 @@ jobs:
         BUILDS: 3.13
         SDKROOT: /opt/python-wasm-sdk
         Py_GIL_DISABLED: false
+        wasisdk: true
+        gosdk: false
+        rustsdk: false
+        nimsdk: false
 
     steps:
     - uses: actions/checkout@v3.3.0

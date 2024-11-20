@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ${SDKROOT:-/tmp/sdk}
+export SDKROOT=${SDKROOT:-/tmp/sdk}
 
 pushd ${SDKROOT}
     . ${CONFIG:-config}

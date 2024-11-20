@@ -47,9 +47,9 @@ else
     emsdk=false
     BUILDS=3.13
     wasisdk=true
-    gosdk=true
-    rustsdk=true
-    nimsdk=true
+    gosdk=${gosdk:-false}
+    rustsdk=${rustdsk:-false}
+    nimsdk=${nimsdk:-false}
 fi
 
 for lang in wasisdk gosdk rustsdk nimsdk
@@ -315,7 +315,7 @@ END
 
         if $nimsdk
         then
-            ${SDKROOT}/python-nim-sdk.sh
+            ${SDKROOT}/lang/nimsdk.sh
         fi
 
         mkdir -p /tmp/sdk
