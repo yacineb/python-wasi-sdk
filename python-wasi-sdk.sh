@@ -60,8 +60,6 @@ do
     fi
 done
 
-read
-
 if [ -d ${SDKROOT} ]
 then
     echo "Assuming destination $SDKROOT is ready"
