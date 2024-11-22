@@ -152,6 +152,7 @@ do
 
         [ -f $HPY ] || exit 106
 
+
         cat > /opt/python-wasm-sdk/devices/$(arch)/usr/bin/py <<END
 #!/bin/bash
 export XDG_SESSION_TYPE=x11
@@ -171,10 +172,10 @@ END
             echo "keeping installed wasmtime and wasi binaries"
         else
             #wget https://github.com/bytecodealliance/wasmtime/releases/download/v22.0.0/wasmtime-v22.0.0-x86_64-linux.tar.xz
-
+            # wget https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.1/wasmtime-v26.0.1-$(arch)-$(PLATFORM).tar.xz \
 # TODO: window only has a zip archive, better use wasmtime-py instead.
 
-            wget https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.1/wasmtime-v26.0.1-$(arch)-$(PLATFORM).tar.xz \
+            wget https://github.com/bytecodealliance/wasmtime/releases/download/v27.0.0/wasmtime-v27.0.0-$(arch)-${PLATFORM}.tar.xz \
              -O-|xzcat|tar xfv -
             mv -vf $(find wasmtime*|grep /wasmtime$) ${SDKROOT}/devices/$(arch)/usr/bin
         fi
@@ -183,7 +184,9 @@ END
         then
             cd ${SDKROOT}
 
-            mkdir -p src build ${SDKROOT}/devices/emsdk ${SDKROOT}/prebuilt/emsdk
+            export TARGET=emsdk
+
+            mkdir -p src build ${SDKROOT}/devices/${TARGET} ${SDKROOT}/prebuilt/${TARGET}
 
             if [ -f /tmp/emsdk.tar ]
             then
@@ -217,7 +220,7 @@ END
             then
                 echo " using cached cpython-build-emsdk-deps"
             else
-                if ./scripts/cpython-build-emsdk-deps.sh
+                if ./scripts/cpython-build-${TARGET}-deps.sh
                 then
 #                    if $CI
                     if false
@@ -246,11 +249,11 @@ END
             fi
 
             echo " ------------ building cpython wasm ${PYBUILD} ${CIVER} ----------------"  1>&2
-            if ./scripts/cpython-build-emsdk.sh  > /dev/null
+            if ./scripts/cpython-build-${TARGET}.sh  > /dev/null
             then
 
                 echo " --------- adding some usefull pkg ${PYBUILD} ${CIVER} ---------" 1>&2
-                ./scripts/cpython-build-emsdk-prebuilt.sh || exit 223
+                ./scripts/cpython-build-${TARGET}-prebuilt.sh || exit 223
 
 
                 # experimental stuff
@@ -282,23 +285,26 @@ END
         then
             cd ${SDKROOT}
 
+            export TARGET=wasi
+
             mkdir -p src build ${SDKROOT}/devices/wasisdk ${SDKROOT}/prebuilt/wasisdk
 
             # do not source to protect env
             ./scripts/cpython-build-wasisdk.sh
 
-            > ${SDKROOT}/python3-wasi
+            > ${SDKROOT}/python3-${TARGET}
 
 # ROOT=/opt/python-wasm-sdk SDKROOT=/opt/python-wasm-sdk
 # HOST_PREFIX=/opt/python-wasm-sdk/devices/$(arch)/usr
-            > ${SDKROOT}/wasm32-wasi-shell.sh
+            > ${SDKROOT}/wasm32-${TARGET}-shell.sh
 
-            CPU=wasm32 TARGET=wasi \
-             PYDK_PYTHON_HOST_PLATFORM=wasm32-wasi \
-             PREFIX=/opt/python-wasm-sdk/devices/wasisdk/usr \
+            CPU=wasm32
+            CPU=$CPU TARGET=$TARGET PYDK_PYTHON_HOST_PLATFORM=${CPU}-${TARGET} \
+             PYDK_SYSCONFIG_PLATFORM=${CPU}-${TARGET} \
+             PREFIX=/opt/python-wasm-sdk/devices/${TARGET}sdk/usr \
              ./scripts/make-shells.sh
 
-            cat >> $ROOT/wasm32-wasi-shell.sh <<END
+            cat >> $ROOT/${CPU}-${TARGET}-shell.sh <<END
 #!/bin/bash
 . ${WASISDK}/wasisdk_env.sh
 
@@ -306,10 +312,10 @@ parse_git_branch() {
      git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
 }
 
-export PS1="[PyDK:wasi] \[\e[32m\]\w \[\e[91m\]\$(parse_git_branch)\[\e[00m\]\$ "
+export PS1="[PyDK:${TARGET}] \[\e[32m\]\w \[\e[91m\]\$(parse_git_branch)\[\e[00m\]\$ "
 
 END
-            chmod +x ${SDKROOT}/python3-wasi ${SDKROOT}/wasm32-wasi-shell.sh
+            chmod +x ${SDKROOT}/python3-${TARGET} ${SDKROOT}/wasm32-${TARGET}-shell.sh
 
         fi
 
