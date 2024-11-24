@@ -1,5 +1,7 @@
 #!/bin/bash
-reset
+
+set -x
+set -e
 
 # TODO: check how dbg tools work with default settings
 # https://developer.chrome.com/blog/wasm-debugging-2020/
